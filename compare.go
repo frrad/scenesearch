@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"time"
+
+	"github.com/frrad/scenesearch/lib/frame"
 )
 
 const compareHtml = `
@@ -34,25 +37,53 @@ type ComparePageData struct {
 	State string
 }
 
-type SearchState struct{}
+type SearchState struct {
+	FileName string
+	Length   time.Duration
+}
+
+func start(w http.ResponseWriter, r *http.Request) {
+	initialState := SearchState{
+		FileName: "input.mp4",
+	}
+
+	stateStr, err := initialState.Encode()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	http.Redirect(w, r, "/compare?state="+stateStr, http.StatusSeeOther)
+}
 
 func handleCompare(w http.ResponseWriter, r *http.Request) {
 	stateStrs := r.URL.Query()["state"]
 	if len(stateStrs) != 1 {
-		initialState := SearchState{}
-		stateStr, err := initialState.Encode()
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
-
-		http.Redirect(w, r, "/compare?state="+stateStr, 301)
+		start(w, r)
 		return
 	}
 
 	state := &SearchState{}
 	err := state.Decode(stateStrs[0])
 	if err != nil {
+		start(w, r)
+		return
+	}
+
+	if state.FileName == "" {
 		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	vid := frame.Video{
+		Filename: state.FileName,
+	}
+	if state.Length == 0 {
+		dur, err := vid.Length()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		state.Length = dur
 	}
 
 	err = compareTemplate.Execute(w, ComparePageData{
