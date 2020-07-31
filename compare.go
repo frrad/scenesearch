@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"time"
 
@@ -40,50 +41,52 @@ type ComparePageData struct {
 type SearchState struct {
 	FileName string
 	Length   time.Duration
+
+	Cuts     []time.Duration
+	Segments []Segment
 }
 
-func start(w http.ResponseWriter, r *http.Request) {
-	initialState := SearchState{
-		FileName: "input.mp4",
-	}
+type Segment struct {
+	Start time.Duration
+	End   time.Duration
+}
 
-	stateStr, err := initialState.Encode()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	http.Redirect(w, r, "/compare?state="+stateStr, http.StatusSeeOther)
+var initialState = SearchState{
+	FileName: "input.mp4",
 }
 
 func handleCompare(w http.ResponseWriter, r *http.Request) {
+	log.Println("got compare request")
 	stateStrs := r.URL.Query()["state"]
 	if len(stateStrs) != 1 {
-		start(w, r)
+		log.Println("not one state value")
+		initialState.Reset(w, r)
 		return
 	}
 
 	state := &SearchState{}
 	err := state.Decode(stateStrs[0])
 	if err != nil {
-		start(w, r)
+		log.Printf("error decoding: %s", err)
+		initialState.Reset(w, r)
+		return
+	}
+
+	changed, err := state.Normalize()
+	if err != nil {
+		log.Printf("error normalizing: %s", err)
+		initialState.Reset(w, r)
+		return
+	}
+
+	if changed {
+		state.Reset(w, r)
 		return
 	}
 
 	if state.FileName == "" {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
-	}
-
-	vid := frame.Video{
-		Filename: state.FileName,
-	}
-	if state.Length == 0 {
-		dur, err := vid.Length()
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		state.Length = dur
 	}
 
 	err = compareTemplate.Execute(w, ComparePageData{
@@ -108,11 +111,15 @@ func (s *SearchState) Encode() (string, error) {
 		return "", err
 	}
 
-	return base64.StdEncoding.EncodeToString(b.Bytes()), nil
+	encodedStr := base64.URLEncoding.EncodeToString(b.Bytes())
+	log.Printf("encoded: %s", encodedStr)
+	return encodedStr, nil
 }
 
 func (s *SearchState) Decode(in string) error {
-	b, err := base64.StdEncoding.DecodeString(in)
+	log.Printf("decoding: %s", in)
+
+	b, err := base64.URLEncoding.DecodeString(in)
 	if err != nil {
 		return err
 	}
@@ -124,4 +131,39 @@ func (s *SearchState) Decode(in string) error {
 	}
 
 	return nil
+}
+
+func (s *SearchState) Reset(w http.ResponseWriter, r *http.Request) {
+	stateStr, err := s.Encode()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	http.Redirect(w, r, "/compare?state="+stateStr, http.StatusSeeOther)
+}
+
+func (s *SearchState) Normalize() (bool, error) {
+	changed := false
+
+	vid := frame.Video{
+		Filename: s.FileName,
+	}
+
+	if s.Length == 0 {
+		dur, err := vid.Length()
+		if err != nil {
+			log.Printf("err getting len %s", err)
+			return changed, err
+		}
+		s.Length = dur
+		s.Length = 5 * time.Minute // hack for now
+		changed = true
+	}
+
+	if len(s.Cuts) == 0 && len(s.Segments) == 0 {
+		s.Cuts = []time.Duration{0, s.Length}
+		changed = true
+	}
+
+	return changed, nil
 }

@@ -11,6 +11,8 @@ import (
 )
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	http.HandleFunc("/frame", handleFrame)
 	http.HandleFunc("/compare", handleCompare)
 
