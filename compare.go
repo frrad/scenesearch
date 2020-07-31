@@ -99,6 +99,7 @@ func handleCompare(w http.ResponseWriter, r *http.Request) {
 	a, b, err := state.MaxGap()
 	if err == ErrDone {
 		state.Done = true
+		state.DonePage(w, r)
 	}
 
 	stateJson, err := json.MarshalIndent(state, "", "  ")

@@ -75,6 +75,15 @@ func (s *SearchState) ComparisonPage(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/compare?state="+stateStr, http.StatusSeeOther)
 }
 
+func (s *SearchState) DonePage(w http.ResponseWriter, r *http.Request) {
+	stateStr, err := s.Encode()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	http.Redirect(w, r, "/done?state="+stateStr, http.StatusSeeOther)
+}
+
 var ErrDone = errors.New("no more gaps")
 
 func (s *SearchState) MaxGap() (time.Duration, time.Duration, error) {

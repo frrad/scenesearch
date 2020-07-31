@@ -15,6 +15,7 @@ func main() {
 
 	http.HandleFunc("/frame", handleFrame)
 	http.HandleFunc("/compare", handleCompare)
+	http.HandleFunc("/done", handleDone)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
