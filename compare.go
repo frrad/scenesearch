@@ -29,18 +29,16 @@ location.href = "/compare?state={{.IfDiff}}";
 
 </head>
 
-{{if .SS.Done}}<h1> DONE! </h1> {{end}}
-
 Gap Size: {{.GapSize}}
 
 <table>
 <tr>
-<td>{{.Offset1.Milliseconds}}</td>
-<td>{{.Offset2.Milliseconds}}</td>
+<td>{{.Frame1.Offset}}</td>
+<td>{{.Frame2.Offset}}</td>
 </tr>
 <tr>
-<td><img src="/frame?offset={{.Offset1.Milliseconds}}" width="{{.Width}}px"></td>
-<td><img src="/frame?offset={{.Offset2.Milliseconds}}" width="{{.Width}}px"></td>
+<td><img src="{{.Frame1}}" width="{{.Width}}px"></td>
+<td><img src="{{.Frame2}}" width="{{.Width}}px"></td>
 </tr>
 </table>
 
@@ -61,8 +59,8 @@ var compareTemplate = template.Must(template.New("").Parse(compareHtml))
 
 type ComparePageData struct {
 	GapSize time.Duration
-	Offset1 time.Duration
-	Offset2 time.Duration
+	Frame1  frameReq
+	Frame2  frameReq
 	Width   uint64
 
 	IfSame string
@@ -119,9 +117,15 @@ func handleCompare(w http.ResponseWriter, r *http.Request) {
 
 	err = compareTemplate.Execute(w, ComparePageData{
 		GapSize: b - a,
-		Offset1: a,
-		Offset2: b,
-		Width:   500,
+		Frame1: frameReq{
+			Offset: a.Milliseconds(),
+			file:   state.FileName,
+		},
+		Frame2: frameReq{
+			Offset: b.Milliseconds(),
+			file:   state.FileName,
+		},
+		Width: 500,
 
 		IfSame: same,
 		IfDiff: diff,
