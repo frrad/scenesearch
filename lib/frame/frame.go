@@ -10,7 +10,11 @@ import (
 	"github.com/frrad/scenesearch/lib/util"
 )
 
-func ExtractFrame(offset time.Duration) (io.ReadCloser, error) {
+type Video struct {
+	Filename string
+}
+
+func (v *Video) ExtractFrame(offset time.Duration) (io.ReadCloser, error) {
 	f, err := ioutil.TempFile(".", "frame*.jpg")
 	if err != nil {
 		return nil, err
@@ -24,12 +28,10 @@ func ExtractFrame(offset time.Duration) (io.ReadCloser, error) {
 	durationStr := formatDuration(offset)
 	log.Println("extracting at offset", durationStr)
 
-	inputFilename := "input.mp4"
-
 	args := []string{
 		"-y", // overwrite file
 		"-ss", durationStr,
-		"-i", inputFilename,
+		"-i", v.Filename,
 		"-vframes", "1",
 		"-q:v ", "2",
 		outName,
