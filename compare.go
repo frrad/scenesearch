@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -16,14 +15,12 @@ const compareHtml = `
 
 <script>
 document.addEventListener("keypress", function(event) {
-if (event.keyCode == 121) {
-location.href = "/compare?state={{.IfSame}}";
-}
-if (event.keyCode == 110) {
-location.href = "/compare?state={{.IfDiff}}";
-}
-
-
+  if (event.keyCode == 121) {
+    location.href = "/compare?state={{.IfSame.Encode}}";
+  }
+  if (event.keyCode == 110) {
+    location.href = "/compare?state={{.IfDiff.Encode}}";
+  }
 });
 </script>
 
@@ -43,13 +40,13 @@ Gap Size: {{.GapSize}}
 </table>
 
 <h3>
-<a href="/compare?state={{.IfSame}}"> Same </a>
+<a href="/compare?state={{.IfSame.Encode}}"> Same </a>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<a href="/compare?state={{.IfDiff}}"> Diff </a>
+<a href="/compare?state={{.IfDiff.Encode}}"> Diff </a>
 </h3>
 
 <pre><code>
-{{.State}}
+{{.SS.JSON}}
 </code></pre>
 
 </html>
@@ -63,11 +60,10 @@ type ComparePageData struct {
 	Frame2  frameReq
 	Width   uint64
 
-	IfSame string
-	IfDiff string
+	IfSame *SearchState
+	IfDiff *SearchState
 
-	SS    *SearchState
-	State string
+	SS *SearchState
 }
 
 func handleCompare(w http.ResponseWriter, r *http.Request) {
@@ -100,21 +96,6 @@ func handleCompare(w http.ResponseWriter, r *http.Request) {
 		state.DonePage(w, r)
 	}
 
-	stateJson, err := json.MarshalIndent(state, "", "  ")
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	same, err := state.IfSame(a, b).Encode()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	diff, err := state.IfDifferent(a, b).Encode()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
 	err = compareTemplate.Execute(w, ComparePageData{
 		GapSize: b - a,
 		Frame1: frameReq{
@@ -127,11 +108,10 @@ func handleCompare(w http.ResponseWriter, r *http.Request) {
 		},
 		Width: 500,
 
-		IfSame: same,
-		IfDiff: diff,
+		IfSame: state.IfSame(a, b),
+		IfDiff: state.IfDifferent(a, b),
 
-		SS:    state,
-		State: string(stateJson),
+		SS: state,
 	})
 	if err != nil {
 		fmt.Fprintf(w, "%+v", err)

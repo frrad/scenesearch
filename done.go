@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -24,7 +23,7 @@ const doneHtml = `
 var doneTemplate = template.Must(template.New("").Parse(doneHtml))
 
 type DonePageData struct {
-	State string
+	State *SearchState
 }
 
 func handleDone(w http.ResponseWriter, r *http.Request) {
@@ -51,13 +50,8 @@ func handleDone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stateJson, err := json.MarshalIndent(state, "", "  ")
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
 	err = doneTemplate.Execute(w, DonePageData{
-		State: string(stateJson),
+		State: state,
 	})
 	if err != nil {
 		fmt.Fprintf(w, "%+v", err)

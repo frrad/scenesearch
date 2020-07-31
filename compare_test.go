@@ -20,8 +20,8 @@ func TestCompare(t *testing.T) {
 		},
 		Width: 500,
 
-		IfSame: "qwer",
-		IfDiff: "uio",
+		IfSame: &SearchState{},
+		IfDiff: &SearchState{},
 	})
 
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -32,19 +33,19 @@ var initialState = SearchState{
 	FileName: "input.mp4",
 }
 
-func (s *SearchState) Encode() (string, error) {
+func (s *SearchState) Encode() string {
 	b := bytes.Buffer{}
 
 	// Create an encoder and send a value.
 	enc := gob.NewEncoder(&b)
 	err := enc.Encode(s)
 	if err != nil {
-		return "", err
+		log.Fatal("never happens")
 	}
 
 	encodedStr := base64.URLEncoding.EncodeToString(b.Bytes())
 	log.Printf("encoded: %s", encodedStr)
-	return encodedStr, nil
+	return encodedStr
 }
 
 func (s *SearchState) Decode(in string) error {
@@ -67,19 +68,13 @@ func (s *SearchState) Decode(in string) error {
 }
 
 func (s *SearchState) ComparisonPage(w http.ResponseWriter, r *http.Request) {
-	stateStr, err := s.Encode()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
+	stateStr := s.Encode()
 
 	http.Redirect(w, r, "/compare?state="+stateStr, http.StatusSeeOther)
 }
 
 func (s *SearchState) DonePage(w http.ResponseWriter, r *http.Request) {
-	stateStr, err := s.Encode()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
+	stateStr := s.Encode()
 
 	http.Redirect(w, r, "/done?state="+stateStr, http.StatusSeeOther)
 }
@@ -169,7 +164,7 @@ func (s *SearchState) Meld() {
 
 func (s *SearchState) SortSegs() {
 	sort.Slice(s.Segments, func(i, j int) bool {
-		return s.Segments[i].Start < s.Segments[j].Start
+		return s.Segments[i].Start < s.Segments[j].Start || s.Segments[i].Start == s.Segments[j].Start && s.Segments[i].End < s.Segments[j].End
 	})
 }
 
@@ -192,6 +187,15 @@ func (s *SearchState) Copy() SearchState {
 	}
 }
 
+func (s *SearchState) JSON() string {
+	x, err := json.MarshalIndent(s, "", "  ")
+	if err != nil {
+		log.Fatal("never happens")
+	}
+
+	return string(x)
+}
+
 func (s *SearchState) Normalize() error {
 	if s.FileName == "" {
 		return fmt.Errorf("need filename")
@@ -208,7 +212,6 @@ func (s *SearchState) Normalize() error {
 			return err
 		}
 		s.Length = dur
-		s.Length = 8 * time.Minute // hack for now
 	}
 
 	if len(s.Segments) < 2 {
