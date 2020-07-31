@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/frrad/scenesearch/lib/frame"
@@ -16,14 +18,28 @@ import (
 const compareHtml = `
 <html>
 
+Gap Size: {{.GapSize}}
+
 <table>
 <tr>
-<td><img src="/frame?offset={{.Offset1}}" width="{{.Width}}px"></td>
-<td><img src="/frame?offset={{.Offset2}}" width="{{.Width}}px"></td>
+<td>{{.Offset1.Milliseconds}}</td>
+<td>{{.Offset2.Milliseconds}}</td>
+</tr>
+<tr>
+<td><img src="/frame?offset={{.Offset1.Milliseconds}}" width="{{.Width}}px"></td>
+<td><img src="/frame?offset={{.Offset2.Milliseconds}}" width="{{.Width}}px"></td>
 </tr>
 </table>
 
+<h3>
+<a href="/compare?state={{.IfSame}}"> Same </a>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="/compare?state={{.IfDiff}}"> Diff </a>
+</h3>
+
+<pre><code>
 {{.State}}
+</code></pre>
 
 </html>
 `
@@ -31,9 +47,13 @@ const compareHtml = `
 var compareTemplate = template.Must(template.New("").Parse(compareHtml))
 
 type ComparePageData struct {
-	Offset1 uint64
-	Offset2 uint64
+	GapSize time.Duration
+	Offset1 time.Duration
+	Offset2 time.Duration
 	Width   uint64
+
+	IfSame string
+	IfDiff string
 
 	State string
 }
@@ -42,7 +62,6 @@ type SearchState struct {
 	FileName string
 	Length   time.Duration
 
-	Cuts     []time.Duration
 	Segments []Segment
 }
 
@@ -72,31 +91,43 @@ func handleCompare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	changed, err := state.Normalize()
+	err = state.Normalize()
 	if err != nil {
 		log.Printf("error normalizing: %s", err)
 		initialState.Reset(w, r)
 		return
 	}
 
-	if changed {
-		state.Reset(w, r)
-		return
+	a, b, err := state.MaxGap()
+
+	stateJson, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 
-	if state.FileName == "" {
+	same, err := state.IfSame(a, b).Encode()
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		return
+	}
+
+	diff, err := state.IfDifferent(a, b).Encode()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 
 	err = compareTemplate.Execute(w, ComparePageData{
-		Offset1: 0,
-		Offset2: 1000,
+		GapSize: b - a,
+		Offset1: a,
+		Offset2: b,
 		Width:   500,
 
-		State: fmt.Sprintf("%v", state),
+		IfSame: same,
+		IfDiff: diff,
+
+		State: string(stateJson),
 	})
 	if err != nil {
+		fmt.Fprintf(w, "%+v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
@@ -117,7 +148,7 @@ func (s *SearchState) Encode() (string, error) {
 }
 
 func (s *SearchState) Decode(in string) error {
-	log.Printf("decoding: %s", in)
+	log.Printf("decoding: ...")
 
 	b, err := base64.URLEncoding.DecodeString(in)
 	if err != nil {
@@ -129,6 +160,8 @@ func (s *SearchState) Decode(in string) error {
 	if err != nil {
 		return err
 	}
+
+	log.Printf("got:%+v", s)
 
 	return nil
 }
@@ -142,8 +175,93 @@ func (s *SearchState) Reset(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/compare?state="+stateStr, http.StatusSeeOther)
 }
 
-func (s *SearchState) Normalize() (bool, error) {
-	changed := false
+func (s *SearchState) MaxGap() (time.Duration, time.Duration, error) {
+	x := []Segment{}
+	for _, seg := range s.Segments {
+		x = append(x, seg)
+	}
+
+	sort.Slice(x, func(i, j int) bool {
+		return x[i].Start < x[j].Start
+	})
+
+	max, a, b := time.Duration(0), time.Duration(0), time.Duration(0)
+	for i := 0; i < len(x)-1; i++ {
+		gap := x[i+1].Start - x[i].End
+		if gap > max {
+			max = gap
+			a, b = x[i].End, x[i+1].Start
+		}
+		if gap < 0 {
+			return 0, 0, fmt.Errorf("negative gap between %v and %v", x[i], x[i+1])
+		}
+	}
+	return a, b, nil
+}
+
+func (s *SearchState) IfDifferent(a, b time.Duration) *SearchState {
+	t := s.Copy()
+	new := (a + b) / 2
+	t.Segments = append(t.Segments, Segment{Start: new, End: new})
+	t.SortSegs()
+	return &t
+}
+
+func (s *SearchState) IfSame(a, b time.Duration) *SearchState {
+	t := s.Copy()
+	t.Segments = append(t.Segments, Segment{Start: a, End: b})
+
+	t.Meld()
+
+	return &t
+}
+
+func (s *SearchState) Meld() {
+	s.SortSegs()
+	if len(s.Segments) <= 1 {
+		return
+	}
+
+	a, b := 0, 1
+	for b < len(s.Segments) {
+		s.Segments[a+1] = s.Segments[b]
+
+		if s.Segments[a].End == s.Segments[a+1].Start {
+			s.Segments[a].End = s.Segments[a+1].End
+			b++
+			continue
+		}
+
+		a++
+		b++
+	}
+
+	s.Segments = s.Segments[:a+1]
+}
+
+func (s *SearchState) SortSegs() {
+	sort.Slice(s.Segments, func(i, j int) bool {
+		return s.Segments[i].Start < s.Segments[j].Start
+	})
+}
+
+func (s *SearchState) Copy() SearchState {
+	segCopy := []Segment{}
+	for _, x := range s.Segments {
+		segCopy = append(segCopy, x)
+	}
+
+	return SearchState{
+		FileName: s.FileName,
+		Length:   s.Length,
+		Segments: segCopy,
+	}
+}
+
+func (s *SearchState) Normalize() error {
+	if s.FileName == "" {
+		return fmt.Errorf("need filename")
+	}
 
 	vid := frame.Video{
 		Filename: s.FileName,
@@ -153,17 +271,22 @@ func (s *SearchState) Normalize() (bool, error) {
 		dur, err := vid.Length()
 		if err != nil {
 			log.Printf("err getting len %s", err)
-			return changed, err
+			return err
 		}
 		s.Length = dur
 		s.Length = 5 * time.Minute // hack for now
-		changed = true
 	}
 
-	if len(s.Cuts) == 0 && len(s.Segments) == 0 {
-		s.Cuts = []time.Duration{0, s.Length}
-		changed = true
+	if len(s.Segments) < 2 {
+		s.Segments = []Segment{
+			{0, 0},
+			{Start: s.Length, End: s.Length},
+		}
 	}
 
-	return changed, nil
+	if s.Segments == nil {
+		s.Segments = []Segment{}
+	}
+
+	return nil
 }
