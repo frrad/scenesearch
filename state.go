@@ -48,6 +48,15 @@ func (s *SearchState) Encode() string {
 	return encodedStr
 }
 
+func (s *SearchState) PercentSegmented() float64 {
+	total := time.Duration(0)
+	for _, x := range s.Segments {
+		total += x.End - x.Start
+	}
+
+	return 100. * float64(total) / float64(s.Length)
+}
+
 func (s *SearchState) Decode(in string) error {
 	log.Printf("decoding: ...")
 

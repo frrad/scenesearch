@@ -22,6 +22,11 @@ func TestCompare(t *testing.T) {
 
 		IfSame: &SearchState{},
 		IfDiff: &SearchState{},
+
+		SS: &SearchState{
+			Segments: []Segment{{Start: 0, End: 1}},
+			Length:   10,
+		},
 	})
 
 	if err != nil {

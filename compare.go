@@ -26,7 +26,9 @@ document.addEventListener("keypress", function(event) {
 
 </head>
 
-Gap Size: {{.GapSize}}
+<b>Gap Size:</b> {{.GapSize}}
+<b>Percent Segmented:</b> {{.SS.PercentSegmented}}
+
 
 <table>
 <tr>
