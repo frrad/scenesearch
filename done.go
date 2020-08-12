@@ -13,8 +13,12 @@ const doneHtml = `
 <head>
 </head>
 
+<form action="{{.SplitRoute}}" method="post">
+    <button name="state" value="{{.State.Encode}}">Split!</button>
+</form>
+
 <pre><code>
-{{.State}}
+{{.State.JSON}}
 </code></pre>
 
 </html>
@@ -23,7 +27,8 @@ const doneHtml = `
 var doneTemplate = template.Must(template.New("").Parse(doneHtml))
 
 type DonePageData struct {
-	State *SearchState
+	State      *SearchState
+	SplitRoute string
 }
 
 func handleDone(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +56,8 @@ func handleDone(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = doneTemplate.Execute(w, DonePageData{
-		State: state,
+		SplitRoute: splitRoute,
+		State:      state,
 	})
 	if err != nil {
 		fmt.Fprintf(w, "%+v", err)

@@ -44,7 +44,6 @@ func (s *SearchState) Encode() string {
 	}
 
 	encodedStr := base64.URLEncoding.EncodeToString(b.Bytes())
-	log.Printf("encoded: %s", encodedStr)
 	return encodedStr
 }
 
@@ -70,8 +69,6 @@ func (s *SearchState) Decode(in string) error {
 	if err != nil {
 		return err
 	}
-
-	log.Printf("got:%+v", s)
 
 	return nil
 }
