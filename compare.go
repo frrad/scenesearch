@@ -95,8 +95,8 @@ func handleCompare(w http.ResponseWriter, r *http.Request) {
 
 	a, b, err := state.MaxGap()
 	if err == ErrDone {
-		state.Done = true
 		state.DonePage(w, r)
+		return
 	}
 
 	err = compareTemplate.Execute(w, ComparePageData{

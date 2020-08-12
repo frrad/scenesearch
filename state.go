@@ -21,7 +21,6 @@ type SearchState struct {
 
 	Segments    []Segment
 	Breakpoints map[time.Duration]struct{}
-	Done        bool
 }
 
 type Segment struct {
@@ -31,6 +30,18 @@ type Segment struct {
 
 var initialState = SearchState{
 	FileName: "input.mp4",
+}
+
+func (seg *Segment) Len() time.Duration {
+	return seg.End - seg.Start
+}
+
+func (state *SearchState) Done() bool {
+	_, _, err := state.MaxGap()
+	if err == ErrDone {
+		return true
+	}
+	return false
 }
 
 func (s *SearchState) Encode() string {

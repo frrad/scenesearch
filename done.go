@@ -17,9 +17,24 @@ const doneHtml = `
     <button name="state" value="{{.State.Encode}}">Split!</button>
 </form>
 
-<pre><code>
-{{.State.JSON}}
-</code></pre>
+<table>
+
+<tr>
+<th> Index </th>
+<th> Length </th>
+<th> Start </th>
+<th> End </th>
+</tr>
+
+{{range $index, $element := .State.Segments}}
+<tr>
+<td> {{$index}} </td>
+<td> {{$element.Len}} </td>
+<td> {{$element.Start}} </td>
+<td> {{$element.End}} </td>
+</tr>
+{{end}}
+</table>
 
 </html>
 `
