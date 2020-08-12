@@ -36,6 +36,16 @@ func (seg *Segment) Len() time.Duration {
 	return seg.End - seg.Start
 }
 
+func (seg *Segment) Frame(f string, pct float64) frameReq {
+
+	x := seg.Start + time.Duration(pct*float64(seg.End-seg.Start))
+
+	return frameReq{
+		Offset: x.Milliseconds(),
+		file:   f,
+	}
+}
+
 func (state *SearchState) Done() bool {
 	_, _, err := state.MaxGap()
 	if err == ErrDone {

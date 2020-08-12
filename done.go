@@ -11,6 +11,13 @@ const doneHtml = `
 <html>
 
 <head>
+<style>
+table, th, td {
+  border: 1px solid black;
+  text-align: left;
+  vertical-align: top;
+}
+</style>
 </head>
 
 <form action="{{.SplitRoute}}" method="post">
@@ -22,16 +29,15 @@ const doneHtml = `
 <tr>
 <th> Index </th>
 <th> Length </th>
-<th> Start </th>
-<th> End </th>
 </tr>
 
 {{range $index, $element := .State.Segments}}
 <tr>
 <td> {{$index}} </td>
 <td> {{$element.Len}} </td>
-<td> {{$element.Start}} </td>
-<td> {{$element.End}} </td>
+<td> <img src="{{$element.Frame "input.mp4" 0.1}}" width="250px"> </td>
+<td> <img src="{{$element.Frame "input.mp4" 0.5}}" width="250px"> </td>
+<td> <img src="{{$element.Frame "input.mp4" 0.9}}" width="250px"> </td>
 </tr>
 {{end}}
 </table>
