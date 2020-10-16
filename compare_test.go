@@ -10,15 +10,13 @@ func TestCompare(t *testing.T) {
 
 	err := compareTemplate.Execute(w, ComparePageData{
 		GapSize: 1,
-		Frame1: frameReq{
-			Offset: 10,
-			file:   "jim",
+		Range: frameRange{
+			StartOffset: 10,
+			EndOffset:   11,
+			Shots:       5,
+			Width:       200,
+			File:        "jimbob",
 		},
-		Frame2: frameReq{
-			Offset: 11,
-			file:   "bob",
-		},
-		Width: 500,
 
 		IfSame: &SearchState{},
 		IfDiff: &SearchState{},

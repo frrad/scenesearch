@@ -31,16 +31,7 @@ document.addEventListener("keypress", function(event) {
 <b>Num  Segments:</b> {{ len .SS.Segments}}
 
 
-<table>
-<tr>
-<td>{{.Frame1.Offset}}</td>
-<td>{{.Frame2.Offset}}</td>
-</tr>
-<tr>
-<td><img src="{{.Frame1}}" width="{{.Width}}px"></td>
-<td><img src="{{.Frame2}}" width="{{.Width}}px"></td>
-</tr>
-</table>
+{{.Range.Table}}
 
 <h3>
 <a href="/compare?state={{.IfSame.Encode}}"> Same </a>
@@ -59,9 +50,7 @@ var compareTemplate = template.Must(template.New("").Parse(compareHtml))
 
 type ComparePageData struct {
 	GapSize time.Duration
-	Frame1  frameReq
-	Frame2  frameReq
-	Width   uint64
+	Range   frameRange
 
 	IfSame *SearchState
 	IfDiff *SearchState
@@ -101,15 +90,13 @@ func handleCompare(w http.ResponseWriter, r *http.Request) {
 
 	err = compareTemplate.Execute(w, ComparePageData{
 		GapSize: b - a,
-		Frame1: frameReq{
-			Offset: a.Milliseconds(),
-			file:   state.FileName,
+		Range: frameRange{
+			StartOffset: a.Milliseconds(),
+			EndOffset:   b.Milliseconds(),
+			Shots:       5,
+			Width:       200,
+			File:        state.FileName,
 		},
-		Frame2: frameReq{
-			Offset: b.Milliseconds(),
-			file:   state.FileName,
-		},
-		Width: 500,
 
 		IfSame: state.IfSame(a, b),
 		IfDiff: state.IfDifferent(a, b),
