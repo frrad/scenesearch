@@ -16,7 +16,7 @@ type Video struct {
 }
 
 func (v *Video) frameDoneFileName(offset time.Duration) string {
-	return fmt.Sprintf("./framecache/%s-%d.jpeg", v.Filename, offset)
+	return fmt.Sprintf("./%s/%s-%d.jpeg", cacheName, v.Filename, offset)
 }
 
 func (v *Video) cachedFrame(offset time.Duration) (io.ReadCloser, error) {

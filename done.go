@@ -92,7 +92,7 @@ func buildTable(x *SearchState) [][]template.HTML {
 			frameRange{
 				StartOffset: seg.Start.Milliseconds(),
 				EndOffset:   seg.End.Milliseconds(),
-				Shots:       4,
+				Shots:       5,
 				Width:       200,
 				File:        x.FileName,
 			}.Table(),

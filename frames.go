@@ -30,12 +30,6 @@ type frameRange struct {
 const rangeHTML = `	<table>
 <tr>
     {{ range $index, $value := .Frames }}
-    <td>{{$value.Offset}}</td>
-    {{ end }}
-</tr>
-
-<tr>
-    {{ range $index, $value := .Frames }}
     <td><img src="{{$value}}" width="{{.Width}}px"></td>
     {{ end }}
 </tr>

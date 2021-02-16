@@ -11,8 +11,10 @@ import (
 	"github.com/frrad/scenesearch/lib/util"
 )
 
+const cacheName = "cache"
+
 func (v *Video) splitDoneFileName(start, end time.Duration) string {
-	return fmt.Sprintf("./splitcache/%s-%d-%d.mp4", v.Filename, start, end)
+	return fmt.Sprintf("./%s/%s-%d-%d.mp4", cacheName, v.Filename, start, end)
 }
 
 func (v *Video) cachedSplit(start, end time.Duration) (io.ReadCloser, error) {

@@ -27,7 +27,7 @@ func (p previewReq) String() string {
 	return fmt.Sprintf("%s?start=%d&end=%d&file=%s", previewRoute, p.Start, p.End, p.File)
 }
 
-func (p previewReq) Split() (io.ReadCloser, error) {
+func (p previewReq) Preview() (io.ReadCloser, error) {
 	v := frame.Video{
 		Filename: p.File,
 	}
@@ -70,7 +70,7 @@ func handlePreview(w http.ResponseWriter, r *http.Request) {
 	}
 	req.File = files[0]
 
-	frame, err := req.Split()
+	frame, err := req.Preview()
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
