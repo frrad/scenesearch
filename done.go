@@ -83,7 +83,7 @@ func handleDone(w http.ResponseWriter, r *http.Request) {
 }
 
 func buildTable(x *SearchState) [][]template.HTML {
-	ans := [][]template.HTML{{"#", "duration"}}
+	ans := [][]template.HTML{{"#", "duration", "", "preview"}}
 
 	for i, seg := range x.Segments {
 		row := []template.HTML{
@@ -96,6 +96,11 @@ func buildTable(x *SearchState) [][]template.HTML {
 				Width:       200,
 				File:        x.FileName,
 			}.Table(),
+			previewReq{
+				File:  x.FileName,
+				Start: seg.Start.Milliseconds(),
+				End:   seg.End.Milliseconds(),
+			}.AsLink("Preview"),
 		}
 		ans = append(ans, row)
 	}

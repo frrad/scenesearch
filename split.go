@@ -28,8 +28,8 @@ func handleSplit(w http.ResponseWriter, r *http.Request) {
 
 	v := frame.Video{Filename: s.FileName}
 
-	for i, x := range s.Segments {
-		err := v.Split(x.Start, x.End, fmt.Sprintf("part%d.mp4", i))
+	for _, x := range s.Segments {
+		_, err := v.Split(x.Start, x.End)
 		if err != nil {
 			log.Fatal(err)
 		}

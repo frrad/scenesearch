@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/frrad/scenesearch/lib/frame"
@@ -86,12 +85,7 @@ func (f frameReq) String() string {
 }
 
 func handleFrame(w http.ResponseWriter, r *http.Request) {
-	offsets := r.URL.Query()["offset"]
-	if len(offsets) != 1 {
-		w.WriteHeader(http.StatusBadRequest)
-	}
-
-	offsetUint, err := strconv.ParseUint(offsets[0], 10, 64)
+	offsetUint, err := numFromURL(r.URL, "offset")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
