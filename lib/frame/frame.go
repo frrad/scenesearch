@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"os"
 	"time"
 
 	"github.com/frrad/scenesearch/lib/util"
@@ -14,7 +15,52 @@ type Video struct {
 	Filename string
 }
 
-func (v *Video) ExtractFrame(offset time.Duration) (io.ReadCloser, error) {
+func (v *Video) frameDoneFileName(offset time.Duration) string {
+	return fmt.Sprintf("./framecache/%s-%d.jpeg", v.Filename, offset)
+}
+
+func (v *Video) cachedFrame(offset time.Duration) (io.ReadCloser, error) {
+	fn := v.frameDoneFileName(offset)
+
+	_, err := os.Stat(fn)
+	if err != nil {
+		return nil, err
+	}
+
+	return os.Open(fn)
+}
+
+func (v *Video) Frame(offset time.Duration) (io.ReadCloser, error) {
+	ans, err := v.cachedFrame(offset)
+	if err == nil {
+		return ans, nil
+	}
+
+	f, err := v.extractFrame(offset)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+	f.Close()
+
+	err = ioutil.WriteFile(v.frameDoneFileName(offset), b, 0755)
+	if err != nil {
+		return nil, err
+	}
+
+	ans, err = v.cachedFrame(offset)
+	if err != nil {
+		return ans, err
+	}
+
+	return ans, nil
+}
+
+func (v *Video) extractFrame(offset time.Duration) (io.ReadCloser, error) {
 	f, err := ioutil.TempFile("", "frame*.jpg")
 	if err != nil {
 		return nil, err
