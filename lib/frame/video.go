@@ -10,6 +10,7 @@ import (
 
 type Video struct {
 	Filename  string
+	Duration  time.Duration
 	KeyFrames []time.Duration
 }
 
@@ -22,10 +23,37 @@ func NewVideo(filename string) (Video, error) {
 	if err != nil {
 		return Video{}, err
 	}
-
 	v.KeyFrames = frames
 
+	err = v.parseInfo()
+	if err != nil {
+		return Video{}, err
+	}
+
 	return v, nil
+}
+
+func (v *Video) parseInfo() error {
+	n := "ffprobe"
+	cmd := []string{
+		"-v",
+		"error",
+		"-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", v.Filename}
+
+	ret, err := exec.Command(n, cmd...).Output()
+	if err != nil {
+		return fmt.Errorf("error executing %s: %w", n, err)
+	}
+
+	returnedString := strings.TrimSuffix(string(ret), "\n")
+	dur, err := parseStringAsDurationSec(returnedString)
+	if err != nil {
+		return err
+	}
+
+	v.Duration = dur
+
+	return nil
 }
 
 func (v Video) keyFrames() ([]time.Duration, error) {
@@ -45,14 +73,20 @@ func (v Video) keyFrames() ([]time.Duration, error) {
 			continue
 		}
 
-		z, err := strconv.ParseFloat(x, 64)
+		z, err := parseStringAsDurationSec(x)
 		if err != nil {
-			return []time.Duration{}, fmt.Errorf("error executing %s: %w", n, err)
+			return []time.Duration{}, err
 		}
-		ans = append(ans, time.Second*time.Duration(z))
-
-		fmt.Println("asdf", x)
+		ans = append(ans, z)
 	}
 
 	return ans, nil
+}
+
+func parseStringAsDurationSec(x string) (time.Duration, error) {
+	z, err := strconv.ParseFloat(x, 64)
+	if err != nil {
+		return time.Duration(0), fmt.Errorf("error parsing as second: %w", err)
+	}
+	return time.Duration(float64(time.Second) * z), nil
 }
