@@ -8,24 +8,69 @@ import (
 	"github.com/frrad/scenesearch/lib/util"
 )
 
-func (v *Video) Split(startOffset, endOffset time.Duration, outName string) error {
+type splitPlan struct {
+	prefixStart time.Duration
+	prefixEnd   time.Duration
+
+	copyStart time.Duration
+	copyEnd   time.Duration
+
+	suffixStart time.Duration
+	suffixEnd   time.Duration
+}
+
+func (v *Video) planSplit(startOffset, endOffset time.Duration) (splitPlan, error) {
 	if startOffset > endOffset {
-		return fmt.Errorf("start offset (%v) must be <= endOffset (%v)", startOffset, endOffset)
+		return splitPlan{}, fmt.Errorf("start offset (%v) must be <= endOffset (%v)", startOffset, endOffset)
 	}
 
 	if endOffset > v.Duration {
-		return fmt.Errorf("end offset (%v) must <= end (%v)", endOffset, v.Duration)
+		return splitPlan{}, fmt.Errorf("end offset (%v) must <= end (%v)", endOffset, v.Duration)
 	}
 
 	if startOffset < time.Duration(0) {
-		return fmt.Errorf("start offset (%v) must >= 0", startOffset)
+		return splitPlan{}, fmt.Errorf("start offset (%v) must >= 0", startOffset)
 	}
 
-	fmt.Println(startOffset)
-	a, b, e := v.segContaining(startOffset)
-	fmt.Println(a, b, e)
+	plan := splitPlan{}
 
-	fmt.Println("split")
+	// figure out the copy part first
+	a, b, err := v.segContaining(startOffset)
+	if err != nil {
+		return splitPlan{}, err
+	}
+	plan.copyStart = b
+	// if startOffset is on the border, which segment we get back is undefined
+	if a == startOffset {
+		plan.copyStart = a
+	}
+
+	a, b, err = v.segContaining(endOffset)
+	plan.copyEnd = a
+	if err != nil {
+		return splitPlan{}, err
+	}
+	// again if the offset is on the border, funny things may happen
+	if b == endOffset {
+		plan.copyEnd = b
+	}
+
+	plan.prefixStart = startOffset
+	plan.prefixEnd = plan.copyStart
+
+	plan.suffixStart = plan.copyEnd
+	plan.suffixEnd = endOffset
+
+	return plan, nil
+}
+
+func (v *Video) Split(startOffset, endOffset time.Duration, outName string) error {
+	sp, err := v.planSplit(startOffset, endOffset)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("split", sp)
 
 	return nil
 }
