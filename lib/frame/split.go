@@ -55,11 +55,26 @@ func (v *Video) planSplit(startOffset, endOffset time.Duration) (splitPlan, erro
 		plan.copyEnd = b
 	}
 
-	plan.prefixStart = startOffset
-	plan.prefixEnd = plan.copyStart
+	// if cut contains one or fewer segment boundaries
+	if plan.copyEnd <= plan.copyStart {
+		plan.copyEnd = 0
+		plan.copyStart = 0
 
-	plan.suffixStart = plan.copyEnd
-	plan.suffixEnd = endOffset
+		plan.prefixStart = startOffset
+		plan.prefixEnd = endOffset
+
+		return plan, nil
+	}
+
+	if startOffset < plan.copyStart {
+		plan.prefixStart = startOffset
+		plan.prefixEnd = plan.copyStart
+	}
+
+	if plan.copyEnd < endOffset {
+		plan.suffixStart = plan.copyEnd
+		plan.suffixEnd = endOffset
+	}
 
 	return plan, nil
 }
