@@ -87,21 +87,22 @@ func (v *Video) Split(startOffset, endOffset time.Duration, outName string) erro
 
 	log.Printf("split plan %+v", sp)
 
+	var pf, sf string
 	if sp.prefixStart < sp.prefixEnd {
-		pfxName := "asfasdfasprefix.mp4"
-		err = v.splitReEncode(sp.prefixStart, sp.prefixEnd, pfxName)
+		pf, err = v.splitReEncode(sp.prefixStart, sp.prefixEnd)
 		if err != nil {
 			return err
 		}
 	}
 
 	if sp.suffixStart < sp.suffixEnd {
-		suffixName := "asfasdfassuffix.mp4"
-		err = v.splitReEncode(sp.suffixStart, sp.suffixEnd, suffixName)
+		sf, err = v.splitReEncode(sp.suffixStart, sp.suffixEnd)
 		if err != nil {
 			return err
 		}
 	}
+
+	fmt.Println(pf, sf)
 
 	return nil
 }
@@ -142,7 +143,9 @@ func (v Video) segIx(offset time.Duration) (int, error) {
 	return len(v.KeyFrames) - 1, nil
 }
 
-func (v *Video) splitReEncode(startOffset, endOffset time.Duration, outName string) error {
+func (v *Video) splitReEncode(startOffset, endOffset time.Duration) (string, error) {
+	outName := fmt.Sprintf("%s-%d-%d.mp4", v.Filename, startOffset, endOffset)
+
 	args := []string{
 		"-y", // overwrite file
 		"-i", v.Filename,
@@ -156,10 +159,10 @@ func (v *Video) splitReEncode(startOffset, endOffset time.Duration, outName stri
 
 	stderr, err := util.ExecDebug("ffmpeg", args...)
 	if err != nil {
-		return fmt.Errorf("%s %v", stderr, err)
+		return "", fmt.Errorf("%s %v", stderr, err)
 	}
 
 	log.Println(stderr)
 
-	return nil
+	return outName, nil
 }
