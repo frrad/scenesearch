@@ -33,7 +33,10 @@ func (v *Video) ExtractFrame(offset time.Duration) (io.ReadCloser, error) {
 		outName,
 	}
 
-	util.ExecDebug("ffmpeg", args...)
+	_, err = util.ExecDebug("ffmpeg", args...)
+	if err != nil {
+		return nil, err
+	}
 
 	return f, nil
 }
