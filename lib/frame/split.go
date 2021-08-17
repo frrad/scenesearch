@@ -85,7 +85,23 @@ func (v *Video) Split(startOffset, endOffset time.Duration, outName string) erro
 		return err
 	}
 
-	fmt.Println("split", sp)
+	log.Printf("split plan %+v", sp)
+
+	if sp.prefixStart < sp.prefixEnd {
+		pfxName := "asfasdfasprefix.mp4"
+		err = v.splitReEncode(sp.prefixStart, sp.prefixEnd, pfxName)
+		if err != nil {
+			return err
+		}
+	}
+
+	if sp.suffixStart < sp.suffixEnd {
+		suffixName := "asfasdfassuffix.mp4"
+		err = v.splitReEncode(sp.suffixStart, sp.suffixEnd, suffixName)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
