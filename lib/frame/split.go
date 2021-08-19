@@ -2,7 +2,9 @@ package frame
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 	"time"
 
 	"github.com/frrad/scenesearch/lib/util"
@@ -79,6 +81,9 @@ func (v *Video) planSplit(startOffset, endOffset time.Duration) (splitPlan, erro
 	return plan, nil
 }
 
+// Split splits
+//
+// https://stackoverflow.com/a/63604858
 func (v *Video) Split(startOffset, endOffset time.Duration, outName string) error {
 	sp, err := v.planSplit(startOffset, endOffset)
 	if err != nil {
@@ -102,9 +107,47 @@ func (v *Video) Split(startOffset, endOffset time.Duration, outName string) erro
 		}
 	}
 
-	fmt.Println(pf, sf)
+	concatInput := ""
+	if pf != "" {
+		concatInput += fmt.Sprintf("file '%s'\n", pf)
+	}
+	if sp.copyStart < sp.copyEnd {
+		concatInput += fmt.Sprintf("file '%s'\n", v.Filename)
+		concatInput += fmt.Sprintf("inpoint %f\n", sp.copyStart.Seconds())
+		concatInput += fmt.Sprintf("outpoint %f\n", sp.copyEnd.Seconds())
+	}
+	if sf != "" {
+		concatInput += fmt.Sprintf("file '%s'\n", sf)
+	}
+
+	const concatFileName string = "concatinstructions.txt"
+	ioutil.WriteFile(concatFileName, []byte(concatInput), 0744)
+
+	demuxedName := fmt.Sprintf("%s-%d-%d.mp4", v.Filename, startOffset, endOffset)
+
+	if _, err := os.Stat(demuxedName); !os.IsNotExist(err) {
+		log.Println(demuxedName, "already exists, not recreating")
+		return nil
+	}
+
+	args := []string{
+		"-f", "concat",
+		"-i", concatFileName,
+		"-c", "copy",
+		demuxedName,
+	}
+
+	log.Println(args)
+
+	stderr, err := util.ExecDebug("ffmpeg", args...)
+	if err != nil {
+		return fmt.Errorf("%s %v", stderr, err)
+	}
+
+	log.Println(stderr)
 
 	return nil
+
 }
 
 func (v Video) segContaining(t time.Duration) (time.Duration, time.Duration, error) {
@@ -145,6 +188,11 @@ func (v Video) segIx(offset time.Duration) (int, error) {
 
 func (v *Video) splitReEncode(startOffset, endOffset time.Duration) (string, error) {
 	outName := fmt.Sprintf("%s-%d-%d.mp4", v.Filename, startOffset, endOffset)
+
+	if _, err := os.Stat(outName); !os.IsNotExist(err) {
+		log.Println(outName, "already exists, not recreating")
+		return outName, nil
+	}
 
 	args := []string{
 		"-y", // overwrite file
