@@ -1,34 +1,11 @@
 package frame
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/frrad/scenesearch/lib/util"
 )
-
-func (v *Video) Length() (time.Duration, error) {
-	log.Println("getting duration")
-
-	args := []string{"-i", v.Filename}
-	ans, err := util.ExecDebug("ffprobe", args...)
-	if err != nil {
-		return 0, err
-	}
-
-	lines := strings.Split(ans, "\n")
-	for _, l := range lines {
-		ans, ok := parseDuration(l)
-		if ok {
-			return ans, nil
-		}
-	}
-
-	return 0, fmt.Errorf("couldn't find duration in output")
-}
 
 func parseDuration(l string) (time.Duration, bool) {
 	d := "Duration:"

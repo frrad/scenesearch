@@ -10,10 +10,6 @@ import (
 	"github.com/frrad/scenesearch/lib/util"
 )
 
-type Video struct {
-	Filename string
-}
-
 func (v *Video) ExtractFrame(offset time.Duration) (io.ReadCloser, error) {
 	f, err := ioutil.TempFile("", "frame*.jpg")
 	if err != nil {
@@ -37,7 +33,10 @@ func (v *Video) ExtractFrame(offset time.Duration) (io.ReadCloser, error) {
 		outName,
 	}
 
-	util.ExecDebug("ffmpeg", args...)
+	_, err = util.ExecDebug("ffmpeg", args...)
+	if err != nil {
+		return nil, err
+	}
 
 	return f, nil
 }
