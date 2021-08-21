@@ -11,6 +11,7 @@ import (
 type Video struct {
 	Filename  string
 	Duration  time.Duration
+	Profile   string
 	KeyFrames []time.Duration
 }
 
@@ -25,7 +26,12 @@ func NewVideo(filename string) (Video, error) {
 	}
 	v.KeyFrames = frames
 
-	err = v.parseInfo()
+	err = v.populateDuration()
+	if err != nil {
+		return Video{}, err
+	}
+
+	err = v.populateProfile()
 	if err != nil {
 		return Video{}, err
 	}
@@ -33,7 +39,7 @@ func NewVideo(filename string) (Video, error) {
 	return v, nil
 }
 
-func (v *Video) parseInfo() error {
+func (v *Video) populateDuration() error {
 	n := "ffprobe"
 	cmd := []string{
 		"-v",
@@ -52,6 +58,24 @@ func (v *Video) parseInfo() error {
 	}
 
 	v.Duration = dur
+
+	return nil
+}
+
+func (v *Video) populateProfile() error {
+	n := "ffprobe"
+	cmd := []string{
+		"-v", "error", "-select_streams", "v", "-show_entries", "stream=profile", "-of", "csv=p=0",
+		v.Filename}
+
+	ret, err := exec.Command(n, cmd...).Output()
+	if err != nil {
+		return fmt.Errorf("error executing %s: %w", n, err)
+	}
+
+	returnedString := strings.TrimSuffix(string(ret), "\n")
+
+	v.Profile = returnedString
 
 	return nil
 }

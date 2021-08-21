@@ -200,6 +200,7 @@ func (v *Video) splitReEncode(startOffset, endOffset time.Duration) (string, err
 		"-ss", formatDuration(startOffset),
 		"-to", formatDuration(endOffset),
 		"-async", "1",
+		"-profile:v", v.Profile,
 		outName,
 	}
 
