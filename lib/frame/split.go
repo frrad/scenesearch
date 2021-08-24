@@ -140,6 +140,7 @@ func (v *Video) Split(startOffset, endOffset time.Duration) (string, error) {
 		concatInput += fmt.Sprintf("file '%s'\n", sf)
 	}
 
+	// todo random suffix
 	const concatFileName string = "concatinstructions.txt"
 	ioutil.WriteFile(concatFileName, []byte(concatInput), 0744)
 
@@ -147,7 +148,7 @@ func (v *Video) Split(startOffset, endOffset time.Duration) (string, error) {
 
 	if _, err := os.Stat(demuxedName); !os.IsNotExist(err) {
 		log.Println(demuxedName, "already exists, not recreating")
-		return "", nil
+		return demuxedName, nil
 	}
 
 	args := []string{
@@ -167,7 +168,6 @@ func (v *Video) Split(startOffset, endOffset time.Duration) (string, error) {
 	log.Println(stderr)
 
 	return demuxedName, nil
-
 }
 
 func (v Video) segContaining(t time.Duration) (time.Duration, time.Duration, error) {
