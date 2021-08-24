@@ -32,7 +32,7 @@ func (v *Video) Frame(offset time.Duration) (io.ReadCloser, error) {
 		return ans, nil
 	}
 
-	f, err := v.ExtractFrame(offset)
+	f, err := v.extractFrame(offset)
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +56,8 @@ func (v *Video) Frame(offset time.Duration) (io.ReadCloser, error) {
 	return ans, nil
 }
 
-func (v *Video) ExtractFrame(offset time.Duration) (io.ReadCloser, error) {
-
+// extractFrame extracts a frame from the video by calling ffmpeg
+func (v *Video) extractFrame(offset time.Duration) (io.ReadCloser, error) {
 	f, err := ioutil.TempFile("", "frame*.jpg")
 	if err != nil {
 		return nil, err
