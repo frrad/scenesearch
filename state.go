@@ -228,17 +228,14 @@ func (s *SearchState) Normalize() error {
 		return fmt.Errorf("need filename")
 	}
 
-	vid := frame.Video{
-		Filename: s.FileName,
+	vid, err := frame.NewVideo(s.FileName)
+	if err != nil {
+		log.Printf("err getting len %s", err)
+		return err
 	}
 
 	if s.Length == 0 {
-		dur, err := vid.Length()
-		if err != nil {
-			log.Printf("err getting len %s", err)
-			return err
-		}
-		s.Length = dur
+		s.Length = vid.Duration
 	}
 
 	if len(s.Segments) < 2 {

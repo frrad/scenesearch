@@ -11,10 +11,6 @@ import (
 	"github.com/frrad/scenesearch/lib/util"
 )
 
-type Video struct {
-	Filename string
-}
-
 func (v *Video) frameDoneFileName(offset time.Duration) string {
 	return fmt.Sprintf("./%s/%s-%d.jpeg", cacheName, v.Filename, offset)
 }
@@ -36,7 +32,7 @@ func (v *Video) Frame(offset time.Duration) (io.ReadCloser, error) {
 		return ans, nil
 	}
 
-	f, err := v.extractFrame(offset)
+	f, err := v.ExtractFrame(offset)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +56,8 @@ func (v *Video) Frame(offset time.Duration) (io.ReadCloser, error) {
 	return ans, nil
 }
 
-func (v *Video) extractFrame(offset time.Duration) (io.ReadCloser, error) {
+func (v *Video) ExtractFrame(offset time.Duration) (io.ReadCloser, error) {
+
 	f, err := ioutil.TempFile("", "frame*.jpg")
 	if err != nil {
 		return nil, err
@@ -83,7 +80,10 @@ func (v *Video) extractFrame(offset time.Duration) (io.ReadCloser, error) {
 		outName,
 	}
 
-	util.ExecDebug("ffmpeg", args...)
+	_, err = util.ExecDebug("ffmpeg", args...)
+	if err != nil {
+		return nil, err
+	}
 
 	return f, nil
 }
