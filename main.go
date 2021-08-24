@@ -11,7 +11,7 @@ const (
 	previewRoute = "/preview"
 	splitRoute   = "/split"
 
-	port = ":50181"
+	port = ":8080"
 )
 
 func main() {

@@ -140,8 +140,7 @@ func (v *Video) Split(startOffset, endOffset time.Duration) (string, error) {
 		concatInput += fmt.Sprintf("file '%s'\n", sf)
 	}
 
-	// todo random suffix
-	const concatFileName string = "concatinstructions.txt"
+	concatFileName := fmt.Sprintf("concatinstructions-%d-%d.txt", startOffset, endOffset)
 	ioutil.WriteFile(concatFileName, []byte(concatInput), 0744)
 
 	demuxedName := fmt.Sprintf("%s-%d-%d.mp4", v.Filename, startOffset, endOffset)

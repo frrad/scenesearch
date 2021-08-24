@@ -62,6 +62,8 @@ func numFromURL(url *url.URL, param string) (uint64, error) {
 }
 
 func handlePreview(w http.ResponseWriter, r *http.Request) {
+	log.Println("got preview req", r)
+
 	req := previewReq{}
 
 	start, err := numFromURL(r.URL, "start")
@@ -81,6 +83,8 @@ func handlePreview(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 	req.File = files[0]
+
+	log.Println("parsed req", req)
 
 	frame, err := req.Preview()
 	if err != nil {
