@@ -27,7 +27,13 @@ type frameRange struct {
 	File string
 }
 
-const rangeHTML = `	<table>
+const rangeHTML = `<table>
+<tr>
+    {{ range $index, $value := .Frames }}
+    <td>{{$value.Offset}}</td>
+    {{ end }}
+</tr>
+
 <tr>
     {{ range $index, $value := .Frames }}
     <td><img src="{{$value}}" width="{{.Width}}px"></td>
@@ -68,6 +74,7 @@ func (r frameRange) Table() template.HTML {
 
 	err := rangeTemplate.Execute(&b, r)
 	if err != nil {
+		fmt.Printf("error: %+v", err)
 		fmt.Fprintf(&b, "%+v", err)
 	}
 

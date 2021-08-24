@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 
@@ -28,11 +29,22 @@ func (p previewReq) String() string {
 }
 
 func (p previewReq) Preview() (io.ReadCloser, error) {
-	v := frame.Video{
-		Filename: p.File,
+	v, err := frame.NewVideo(p.File)
+	if err != nil {
+		return nil, err
 	}
 
-	return v.Split(time.Duration(p.Start)*time.Millisecond, time.Duration(p.End)*time.Millisecond)
+	file, err := v.Split(time.Duration(p.Start)*time.Millisecond, time.Duration(p.End)*time.Millisecond)
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
 }
 
 func numFromURL(url *url.URL, param string) (uint64, error) {

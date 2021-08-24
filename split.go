@@ -33,8 +33,7 @@ func handleSplit(w http.ResponseWriter, r *http.Request) {
 
 	for i, x := range s.Segments {
 		log.Println(i, x.Start, x.End)
-		err := v.Split(x.Start, x.End, fmt.Sprintf("part%d.mp4", i))
-
+		_, err := v.Split(x.Start, x.End)
 		if err != nil {
 			log.Fatal(err)
 		}

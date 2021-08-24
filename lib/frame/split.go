@@ -30,16 +30,6 @@ func (v *Video) cachedSplit(start, end time.Duration) (io.ReadCloser, error) {
 	return os.Open(fn)
 }
 
-func (v *Video) extractSplit(startOffset, endOffset time.Duration) (io.ReadCloser, error) {
-	f, err := ioutil.TempFile("", "split*.mp4")
-	if err != nil {
-		return nil, err
-	}
-
-	outName := f.Name()
-	log.Print("output will go in ", outName)
-}
-
 type splitPlan struct {
 	prefixStart time.Duration
 	prefixEnd   time.Duration
@@ -114,10 +104,10 @@ func (v *Video) planSplit(startOffset, endOffset time.Duration) (splitPlan, erro
 // Split splits
 //
 // https://stackoverflow.com/a/63604858
-func (v *Video) Split(startOffset, endOffset time.Duration, outName string) error {
+func (v *Video) Split(startOffset, endOffset time.Duration) (string, error) {
 	sp, err := v.planSplit(startOffset, endOffset)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	log.Printf("split plan %+v", sp)
@@ -126,14 +116,14 @@ func (v *Video) Split(startOffset, endOffset time.Duration, outName string) erro
 	if sp.prefixStart < sp.prefixEnd {
 		pf, err = v.splitReEncode(sp.prefixStart, sp.prefixEnd)
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
 	if sp.suffixStart < sp.suffixEnd {
 		sf, err = v.splitReEncode(sp.suffixStart, sp.suffixEnd)
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
@@ -157,7 +147,7 @@ func (v *Video) Split(startOffset, endOffset time.Duration, outName string) erro
 
 	if _, err := os.Stat(demuxedName); !os.IsNotExist(err) {
 		log.Println(demuxedName, "already exists, not recreating")
-		return nil
+		return "", nil
 	}
 
 	args := []string{
@@ -171,12 +161,12 @@ func (v *Video) Split(startOffset, endOffset time.Duration, outName string) erro
 
 	stderr, err := util.ExecDebug("ffmpeg", args...)
 	if err != nil {
-		return fmt.Errorf("%s %v", stderr, err)
+		return "", fmt.Errorf("%s %v", stderr, err)
 	}
 
 	log.Println(stderr)
 
-	return nil
+	return demuxedName, nil
 
 }
 
