@@ -2,9 +2,6 @@ package frame
 
 import (
 	"fmt"
-
-	"io"
-
 	"io/ioutil"
 	"log"
 	"os"
@@ -17,17 +14,6 @@ const cacheName = "cache"
 
 func (v *Video) splitDoneFileName(start, end time.Duration) string {
 	return fmt.Sprintf("./%s/%s-%d-%d.mp4", cacheName, v.Filename, start, end)
-}
-
-func (v *Video) cachedSplit(start, end time.Duration) (io.ReadCloser, error) {
-	fn := v.splitDoneFileName(start, end)
-
-	_, err := os.Stat(fn)
-	if err != nil {
-		return nil, err
-	}
-
-	return os.Open(fn)
 }
 
 type splitPlan struct {
@@ -143,18 +129,18 @@ func (v *Video) Split(startOffset, endOffset time.Duration) (string, error) {
 	concatFileName := fmt.Sprintf("concatinstructions-%d-%d.txt", startOffset, endOffset)
 	ioutil.WriteFile(concatFileName, []byte(concatInput), 0744)
 
-	demuxedName := fmt.Sprintf("%s-%d-%d.mp4", v.Filename, startOffset, endOffset)
+	completeSplitName := v.splitDoneFileName(startOffset, endOffset)
 
-	if _, err := os.Stat(demuxedName); !os.IsNotExist(err) {
-		log.Println(demuxedName, "already exists, not recreating")
-		return demuxedName, nil
+	if _, err := os.Stat(completeSplitName); !os.IsNotExist(err) {
+		log.Println(completeSplitName, "already exists, not recreating")
+		return completeSplitName, nil
 	}
 
 	args := []string{
 		"-f", "concat",
 		"-i", concatFileName,
 		"-c", "copy",
-		demuxedName,
+		completeSplitName,
 	}
 
 	log.Println(args)
@@ -166,7 +152,7 @@ func (v *Video) Split(startOffset, endOffset time.Duration) (string, error) {
 
 	log.Println(stderr)
 
-	return demuxedName, nil
+	return completeSplitName, nil
 }
 
 func (v Video) segContaining(t time.Duration) (time.Duration, time.Duration, error) {

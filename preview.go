@@ -3,11 +3,9 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"time"
 
@@ -28,23 +26,13 @@ func (p previewReq) String() string {
 	return fmt.Sprintf("%s?start=%d&end=%d&file=%s", previewRoute, p.Start, p.End, p.File)
 }
 
-func (p previewReq) Preview() (io.ReadCloser, error) {
+func (p previewReq) Preview() (string, error) {
 	v, err := frame.NewVideo(p.File)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	file, err := v.Split(time.Duration(p.Start)*time.Millisecond, time.Duration(p.End)*time.Millisecond)
-	if err != nil {
-		return nil, err
-	}
-
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-
-	return f, nil
+	return v.Split(time.Duration(p.Start)*time.Millisecond, time.Duration(p.End)*time.Millisecond)
 }
 
 func numFromURL(url *url.URL, param string) (uint64, error) {
@@ -86,20 +74,12 @@ func handlePreview(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("parsed req", req)
 
-	frame, err := req.Preview()
+	splitFilename, err := req.Preview()
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	_, err = io.Copy(w, frame)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-	}
-
-	err = frame.Close()
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-	}
+	http.ServeFile(w, r, splitFilename)
 }
