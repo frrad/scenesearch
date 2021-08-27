@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
-	"io"
 	"log"
 	"net/http"
 	"time"
@@ -100,20 +99,12 @@ func handleFrame(w http.ResponseWriter, r *http.Request) {
 		Filename: files[0],
 	}
 
-	frame, err := v.Frame(time.Duration(offsetUint) * time.Millisecond)
+	framePath, err := v.Frame(time.Duration(offsetUint) * time.Millisecond)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	_, err = io.Copy(w, frame)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-	}
-
-	err = frame.Close()
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-	}
+	http.ServeFile(w, r, framePath)
 }

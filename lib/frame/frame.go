@@ -2,8 +2,6 @@ package frame
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -15,55 +13,24 @@ func (v *Video) frameDoneFileName(offset time.Duration) string {
 	return fmt.Sprintf("./%s/%s-%d.jpeg", cacheName, v.Filename, offset)
 }
 
-func (v *Video) cachedFrame(offset time.Duration) (io.ReadCloser, error) {
-	fn := v.frameDoneFileName(offset)
+func (v *Video) Frame(offset time.Duration) (string, error) {
+	cachedName := v.frameDoneFileName(offset)
 
-	_, err := os.Stat(fn)
-	if err != nil {
-		return nil, err
-	}
-
-	return os.Open(fn)
-}
-
-func (v *Video) Frame(offset time.Duration) (io.ReadCloser, error) {
-	ans, err := v.cachedFrame(offset)
+	_, err := os.Stat(cachedName)
 	if err == nil {
-		return ans, nil
+		return cachedName, nil
 	}
 
-	f, err := v.extractFrame(offset)
+	err = v.extractFrame(offset, cachedName)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	b, err := ioutil.ReadAll(f)
-	if err != nil {
-		return nil, err
-	}
-	f.Close()
-
-	err = ioutil.WriteFile(v.frameDoneFileName(offset), b, 0755)
-	if err != nil {
-		return nil, err
-	}
-
-	ans, err = v.cachedFrame(offset)
-	if err != nil {
-		return ans, err
-	}
-
-	return ans, nil
+	return cachedName, nil
 }
 
 // extractFrame extracts a frame from the video by calling ffmpeg
-func (v *Video) extractFrame(offset time.Duration) (io.ReadCloser, error) {
-	f, err := ioutil.TempFile("", "frame*.jpg")
-	if err != nil {
-		return nil, err
-	}
-
-	outName := f.Name()
+func (v *Video) extractFrame(offset time.Duration, outName string) error {
 	log.Print("output will go in ", outName)
 
 	// https://stackoverflow.com/a/27573049/858795
@@ -80,12 +47,8 @@ func (v *Video) extractFrame(offset time.Duration) (io.ReadCloser, error) {
 		outName,
 	}
 
-	_, err = util.ExecDebug("ffmpeg", args...)
-	if err != nil {
-		return nil, err
-	}
-
-	return f, nil
+	_, err := util.ExecDebug("ffmpeg", args...)
+	return err
 }
 
 func formatDuration(d time.Duration) string {
