@@ -10,6 +10,12 @@ import (
 	"github.com/frrad/scenesearch/lib/util"
 )
 
+const cacheName = "cache"
+
+func (v *Video) splitDoneFileName(start, end time.Duration) string {
+	return fmt.Sprintf("./%s/%s-%d-%d.mp4", cacheName, v.Filename, start, end)
+}
+
 type splitPlan struct {
 	prefixStart time.Duration
 	prefixEnd   time.Duration
@@ -84,10 +90,10 @@ func (v *Video) planSplit(startOffset, endOffset time.Duration) (splitPlan, erro
 // Split splits
 //
 // https://stackoverflow.com/a/63604858
-func (v *Video) Split(startOffset, endOffset time.Duration, outName string) error {
+func (v *Video) Split(startOffset, endOffset time.Duration) (string, error) {
 	sp, err := v.planSplit(startOffset, endOffset)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	log.Printf("split plan %+v", sp)
@@ -96,14 +102,14 @@ func (v *Video) Split(startOffset, endOffset time.Duration, outName string) erro
 	if sp.prefixStart < sp.prefixEnd {
 		pf, err = v.splitReEncode(sp.prefixStart, sp.prefixEnd)
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
 	if sp.suffixStart < sp.suffixEnd {
 		sf, err = v.splitReEncode(sp.suffixStart, sp.suffixEnd)
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
@@ -120,34 +126,33 @@ func (v *Video) Split(startOffset, endOffset time.Duration, outName string) erro
 		concatInput += fmt.Sprintf("file '%s'\n", sf)
 	}
 
-	const concatFileName string = "concatinstructions.txt"
+	concatFileName := fmt.Sprintf("concatinstructions-%d-%d.txt", startOffset, endOffset)
 	ioutil.WriteFile(concatFileName, []byte(concatInput), 0744)
 
-	demuxedName := fmt.Sprintf("%s-%d-%d.mp4", v.Filename, startOffset, endOffset)
+	completeSplitName := v.splitDoneFileName(startOffset, endOffset)
 
-	if _, err := os.Stat(demuxedName); !os.IsNotExist(err) {
-		log.Println(demuxedName, "already exists, not recreating")
-		return nil
+	if _, err := os.Stat(completeSplitName); !os.IsNotExist(err) {
+		log.Println(completeSplitName, "already exists, not recreating")
+		return completeSplitName, nil
 	}
 
 	args := []string{
 		"-f", "concat",
 		"-i", concatFileName,
 		"-c", "copy",
-		demuxedName,
+		completeSplitName,
 	}
 
 	log.Println(args)
 
 	stderr, err := util.ExecDebug("ffmpeg", args...)
 	if err != nil {
-		return fmt.Errorf("%s %v", stderr, err)
+		return "", fmt.Errorf("%s %v", stderr, err)
 	}
 
 	log.Println(stderr)
 
-	return nil
-
+	return completeSplitName, nil
 }
 
 func (v Video) segContaining(t time.Duration) (time.Duration, time.Duration, error) {

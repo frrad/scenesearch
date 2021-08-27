@@ -2,21 +2,35 @@ package frame
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
+	"os"
 	"time"
 
 	"github.com/frrad/scenesearch/lib/util"
 )
 
-func (v *Video) ExtractFrame(offset time.Duration) (io.ReadCloser, error) {
-	f, err := ioutil.TempFile("", "frame*.jpg")
-	if err != nil {
-		return nil, err
+func (v *Video) frameDoneFileName(offset time.Duration) string {
+	return fmt.Sprintf("./%s/%s-%d.jpeg", cacheName, v.Filename, offset)
+}
+
+func (v *Video) Frame(offset time.Duration) (string, error) {
+	cachedName := v.frameDoneFileName(offset)
+
+	_, err := os.Stat(cachedName)
+	if err == nil {
+		return cachedName, nil
 	}
 
-	outName := f.Name()
+	err = v.extractFrame(offset, cachedName)
+	if err != nil {
+		return "", err
+	}
+
+	return cachedName, nil
+}
+
+// extractFrame extracts a frame from the video by calling ffmpeg
+func (v *Video) extractFrame(offset time.Duration, outName string) error {
 	log.Print("output will go in ", outName)
 
 	// https://stackoverflow.com/a/27573049/858795
@@ -33,12 +47,8 @@ func (v *Video) ExtractFrame(offset time.Duration) (io.ReadCloser, error) {
 		outName,
 	}
 
-	_, err = util.ExecDebug("ffmpeg", args...)
-	if err != nil {
-		return nil, err
-	}
-
-	return f, nil
+	_, err := util.ExecDebug("ffmpeg", args...)
+	return err
 }
 
 func formatDuration(d time.Duration) string {

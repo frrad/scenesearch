@@ -6,19 +6,23 @@ import (
 )
 
 const (
-	frameRoute = "/frame"
-	splitRoute = "/split"
+	compareRoute = "/compare"
+	frameRoute   = "/frame"
+	previewRoute = "/preview"
+	splitRoute   = "/split"
+
+	port = ":8080"
 )
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	http.HandleFunc(frameRoute, handleFrame)
-	http.HandleFunc("/compare", handleCompare)
+	http.HandleFunc(previewRoute, handlePreview)
+	http.HandleFunc(compareRoute, handleCompare)
 	http.HandleFunc("/done", handleDone)
 	http.HandleFunc(splitRoute, handleSplit)
 
-	port := ":8080"
 	log.Println("serving on port", port)
 	log.Fatal(http.ListenAndServe(port, nil))
 }

@@ -25,21 +25,15 @@ table, th, td {
 </form>
 
 <table>
-
-<tr>
-<th> Index </th>
-<th> Length </th>
-</tr>
-
-{{range $index, $element := .State.Segments}}
-<tr>
-<td> {{$index}} </td>
-<td> {{$element.Len}} </td>
-<td> <img src="{{$element.Frame "input.mp4" 0.1}}" width="250px"> </td>
-<td> <img src="{{$element.Frame "input.mp4" 0.5}}" width="250px"> </td>
-<td> <img src="{{$element.Frame "input.mp4" 0.9}}" width="250px"> </td>
-</tr>
-{{end}}
+  {{ range $index, $row := .Table}}
+  <tr>
+	{{ range $index, $col := $row }}
+	<td>
+	  {{$col}}
+	</td>
+	{{end}}
+  </tr>
+  {{end}}
 </table>
 
 </html>
@@ -50,6 +44,7 @@ var doneTemplate = template.Must(template.New("").Parse(doneHtml))
 type DonePageData struct {
 	State      *SearchState
 	SplitRoute string
+	Table      [][]template.HTML
 }
 
 func handleDone(w http.ResponseWriter, r *http.Request) {
@@ -79,9 +74,36 @@ func handleDone(w http.ResponseWriter, r *http.Request) {
 	err = doneTemplate.Execute(w, DonePageData{
 		SplitRoute: splitRoute,
 		State:      state,
+		Table:      buildTable(state),
 	})
 	if err != nil {
 		fmt.Fprintf(w, "%+v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+}
+
+func buildTable(x *SearchState) [][]template.HTML {
+	ans := [][]template.HTML{{"#", "duration", "", "preview"}}
+
+	for i, seg := range x.Segments {
+		row := []template.HTML{
+			template.HTML(fmt.Sprintf("%d", i)),
+			template.HTML(fmt.Sprintf("%s", seg.Len())),
+			frameRange{
+				StartOffset: seg.Start.Milliseconds(),
+				EndOffset:   seg.End.Milliseconds(),
+				Shots:       5,
+				Width:       200,
+				File:        x.FileName,
+			}.Table(),
+			previewReq{
+				File:  x.FileName,
+				Start: seg.Start.Milliseconds(),
+				End:   seg.End.Milliseconds(),
+			}.AsLink("Preview"),
+		}
+		ans = append(ans, row)
+	}
+
+	return ans
 }

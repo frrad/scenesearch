@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
-	"io"
+	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/frrad/scenesearch/lib/frame"
@@ -27,7 +26,7 @@ type frameRange struct {
 	File string
 }
 
-const rangeHTML = `	<table>
+const rangeHTML = `<table>
 <tr>
     {{ range $index, $value := .Frames }}
     <td>{{$value.Offset}}</td>
@@ -74,6 +73,7 @@ func (r frameRange) Table() template.HTML {
 
 	err := rangeTemplate.Execute(&b, r)
 	if err != nil {
+		fmt.Printf("error: %+v", err)
 		fmt.Fprintf(&b, "%+v", err)
 	}
 
@@ -85,12 +85,7 @@ func (f frameReq) String() string {
 }
 
 func handleFrame(w http.ResponseWriter, r *http.Request) {
-	offsets := r.URL.Query()["offset"]
-	if len(offsets) != 1 {
-		w.WriteHeader(http.StatusBadRequest)
-	}
-
-	offsetUint, err := strconv.ParseUint(offsets[0], 10, 64)
+	offsetUint, err := numFromURL(r.URL, "offset")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
@@ -104,18 +99,12 @@ func handleFrame(w http.ResponseWriter, r *http.Request) {
 		Filename: files[0],
 	}
 
-	frame, err := v.ExtractFrame(time.Duration(offsetUint) * time.Millisecond)
+	framePath, err := v.Frame(time.Duration(offsetUint) * time.Millisecond)
 	if err != nil {
+		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
-	_, err = io.Copy(w, frame)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-	}
-
-	err = frame.Close()
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-	}
+	http.ServeFile(w, r, framePath)
 }
