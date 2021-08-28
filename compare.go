@@ -94,7 +94,7 @@ func handleCompare(w http.ResponseWriter, r *http.Request) {
 			StartOffset: a.Milliseconds(),
 			EndOffset:   b.Milliseconds(),
 			Shots:       5,
-			Width:       200,
+			Width:       300,
 			File:        state.FileName,
 		},
 

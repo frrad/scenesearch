@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-
-	"github.com/frrad/scenesearch/lib/frame"
 )
 
 func handleSplit(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +24,7 @@ func handleSplit(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	v, err := frame.NewVideo(s.FileName)
+	v, err := VideoFrameCache.GetFrame(s.FileName)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -11,8 +11,6 @@ import (
 	"net/http"
 	"sort"
 	"time"
-
-	"github.com/frrad/scenesearch/lib/frame"
 )
 
 type SearchState struct {
@@ -228,7 +226,7 @@ func (s *SearchState) Normalize() error {
 		return fmt.Errorf("need filename")
 	}
 
-	vid, err := frame.NewVideo(s.FileName)
+	vid, err := VideoFrameCache.GetFrame(s.FileName)
 	if err != nil {
 		log.Printf("err getting len %s", err)
 		return err
