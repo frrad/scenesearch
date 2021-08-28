@@ -93,15 +93,15 @@ func (s *SearchState) Decode(in string) error {
 }
 
 func (s *SearchState) ComparisonPage(w http.ResponseWriter, r *http.Request) {
-	stateStr := s.Encode()
-
-	http.Redirect(w, r, "/compare?state="+stateStr, http.StatusSeeOther)
+	http.Redirect(w, r, s.AsCompareLink(), http.StatusSeeOther)
 }
 
 func (s *SearchState) DonePage(w http.ResponseWriter, r *http.Request) {
-	stateStr := s.Encode()
+	http.Redirect(w, r, "/done?state="+s.Encode(), http.StatusSeeOther)
+}
 
-	http.Redirect(w, r, "/done?state="+stateStr, http.StatusSeeOther)
+func (s *SearchState) AsCompareLink() string {
+	return "/compare?state=" + s.Encode()
 }
 
 var ErrDone = errors.New("no more gaps")
