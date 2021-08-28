@@ -8,8 +8,6 @@ import (
 	"net/url"
 	"strconv"
 	"time"
-
-	"github.com/frrad/scenesearch/lib/frame"
 )
 
 type previewReq struct {
@@ -27,7 +25,7 @@ func (p previewReq) String() string {
 }
 
 func (p previewReq) Preview() (string, error) {
-	v, err := frame.NewVideo(p.File)
+	v, err := VideoFrameCache.GetFrame(p.File)
 	if err != nil {
 		return "", err
 	}
