@@ -1,10 +1,13 @@
 package frame
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"time"
 
 	"github.com/frrad/scenesearch/lib/util"
@@ -13,7 +16,25 @@ import (
 const cacheName = "cache"
 
 func (v *Video) splitDoneFileName(start, end time.Duration) string {
-	return fmt.Sprintf("./%s/%s-%d-%d.mp4", cacheName, v.Filename, start, end)
+	return fmt.Sprintf("%s/%s-%d-%d.mp4", cacheName, v.Filename, start, end)
+}
+
+func randomHex(n int) (string, error) {
+	bytes := make([]byte, n)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
+func tempFileName(suffix string) (string, error) {
+	now := time.Now().UnixNano()
+	randomStr, err := randomHex(4)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s/%d-%s%s", cacheName, now, randomStr, suffix), nil
 }
 
 type splitPlan struct {
@@ -91,6 +112,13 @@ func (v *Video) planSplit(startOffset, endOffset time.Duration) (splitPlan, erro
 //
 // https://stackoverflow.com/a/63604858
 func (v *Video) Split(startOffset, endOffset time.Duration) (string, error) {
+	completeSplitName := v.splitDoneFileName(startOffset, endOffset)
+
+	if _, err := os.Stat(completeSplitName); !os.IsNotExist(err) {
+		log.Println(completeSplitName, "already exists, not recreating")
+		return completeSplitName, nil
+	}
+
 	sp, err := v.planSplit(startOffset, endOffset)
 	if err != nil {
 		return "", err
@@ -129,28 +157,32 @@ func (v *Video) Split(startOffset, endOffset time.Duration) (string, error) {
 	concatFileName := fmt.Sprintf("concatinstructions-%d-%d.txt", startOffset, endOffset)
 	ioutil.WriteFile(concatFileName, []byte(concatInput), 0744)
 
-	completeSplitName := v.splitDoneFileName(startOffset, endOffset)
-
-	if _, err := os.Stat(completeSplitName); !os.IsNotExist(err) {
-		log.Println(completeSplitName, "already exists, not recreating")
-		return completeSplitName, nil
+	tfn, err := tempFileName(".mp4")
+	if err != nil {
+		return "", err
 	}
 
 	args := []string{
 		"-f", "concat",
 		"-i", concatFileName,
 		"-c", "copy",
-		completeSplitName,
+		tfn,
 	}
 
 	log.Println(args)
 
-	stderr, err := util.ExecDebug("ffmpeg", args...)
+	ffmpegOutput, err := util.ExecDebug("ffmpeg", args...)
 	if err != nil {
-		return "", fmt.Errorf("%s %v", stderr, err)
+		return "", fmt.Errorf("%s %v", ffmpegOutput, err)
 	}
 
-	log.Println(stderr)
+	cmd := exec.Command("mv", tfn, completeSplitName)
+	_, err = cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+
+	log.Println(ffmpegOutput)
 
 	return completeSplitName, nil
 }
@@ -192,11 +224,16 @@ func (v Video) segIx(offset time.Duration) (int, error) {
 }
 
 func (v *Video) splitReEncode(startOffset, endOffset time.Duration) (string, error) {
-	outName := fmt.Sprintf("%s-%d-%d.mp4", v.Filename, startOffset, endOffset)
+	outName := v.splitDoneFileName(startOffset, endOffset)
 
 	if _, err := os.Stat(outName); !os.IsNotExist(err) {
 		log.Println(outName, "already exists, not recreating")
 		return outName, nil
+	}
+
+	tfn, err := tempFileName(".mp4")
+	if err != nil {
+		return "", err
 	}
 
 	args := []string{
@@ -206,7 +243,7 @@ func (v *Video) splitReEncode(startOffset, endOffset time.Duration) (string, err
 		"-to", formatDuration(endOffset),
 		"-async", "1",
 		"-profile:v", v.Profile,
-		outName,
+		tfn,
 	}
 
 	log.Println(args)
@@ -218,5 +255,8 @@ func (v *Video) splitReEncode(startOffset, endOffset time.Duration) (string, err
 
 	log.Println(stderr)
 
-	return outName, nil
+	cmd := exec.Command("mv", tfn, outName)
+	_, err = cmd.CombinedOutput()
+
+	return outName, err
 }
