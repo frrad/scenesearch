@@ -19,7 +19,7 @@ document.addEventListener("keypress", function(event) {
     location.href = "/compare?state={{.IfSame.Encode}}";
   }
   if (event.keyCode == 110) {
-    location.href = "/compare?state={{.IfDiff.Encode}}";
+    location.href = "{{.IfDiff.AsCompareLink}}";
   }
 });
 </script>
@@ -34,9 +34,9 @@ document.addEventListener("keypress", function(event) {
 {{.Range.Table}}
 
 <h3>
-<a href="/compare?state={{.IfSame.Encode}}"> Same </a>
+<a href="{{.IfSame.AsCompareLink}}"> Same </a>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<a href="/compare?state={{.IfDiff.Encode}}"> Diff </a>
+<a href="{{.IfDiff.AsCompareLink}}"> Diff </a>
 </h3>
 
 <pre><code>

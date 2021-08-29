@@ -101,9 +101,46 @@ func buildTable(x *SearchState) [][]template.HTML {
 				Start: seg.Start.Milliseconds(),
 				End:   seg.End.Milliseconds(),
 			}.AsLink("Preview"),
+			template.HTML(fmt.Sprintf("<a href=\"%s\">Split</a>", x.Split(i).AsCompareLink())),
+			template.HTML(fmt.Sprintf("<a href=\"%s\">Merge Down</a>", x.MergeDown(i).AsCompareLink())),
 		}
 		ans = append(ans, row)
 	}
 
 	return ans
+}
+
+func (s *SearchState) Split(i int) *SearchState {
+	t := s.Copy()
+
+	a := Segment{
+		Start: t.Segments[i].Start,
+		End:   t.Segments[i].Start,
+	}
+	b := Segment{
+		Start: t.Segments[i].End,
+		End:   t.Segments[i].End,
+	}
+
+	x := make([]Segment, len(t.Segments)+1)
+	copy(x[:i], t.Segments[:i])
+	x[i] = a
+	x[i+1] = b
+	copy(x[i+2:], t.Segments[i+1:])
+
+	t.Segments = x
+
+	return &t
+}
+
+func (s *SearchState) MergeDown(i int) *SearchState {
+	t := s.Copy()
+	if i+1 >= len(t.Segments) {
+		return &t
+	}
+
+	t.Segments[i].End = t.Segments[i+1].End
+	t.Segments = append(t.Segments[:i+1], t.Segments[i+2:]...)
+
+	return &t
 }

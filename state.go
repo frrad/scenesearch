@@ -93,18 +93,20 @@ func (s *SearchState) Decode(in string) error {
 }
 
 func (s *SearchState) ComparisonPage(w http.ResponseWriter, r *http.Request) {
-	stateStr := s.Encode()
-
-	http.Redirect(w, r, "/compare?state="+stateStr, http.StatusSeeOther)
+	http.Redirect(w, r, s.AsCompareLink(), http.StatusSeeOther)
 }
 
 func (s *SearchState) DonePage(w http.ResponseWriter, r *http.Request) {
-	stateStr := s.Encode()
+	http.Redirect(w, r, "/done?state="+s.Encode(), http.StatusSeeOther)
+}
 
-	http.Redirect(w, r, "/done?state="+stateStr, http.StatusSeeOther)
+func (s *SearchState) AsCompareLink() string {
+	return "/compare?state=" + s.Encode()
 }
 
 var ErrDone = errors.New("no more gaps")
+
+const quantum = time.Millisecond
 
 func (s *SearchState) MaxGap() (time.Duration, time.Duration, error) {
 	x := []Segment{}
@@ -119,33 +121,37 @@ func (s *SearchState) MaxGap() (time.Duration, time.Duration, error) {
 	max, a, b := time.Duration(0), time.Duration(0), time.Duration(0)
 	found := false
 	for i := 0; i < len(x)-1; i++ {
-		if _, ok := s.Breakpoints[x[i+1].Start]; ok {
-			continue
-		}
-		if _, ok := s.Breakpoints[x[i].End]; ok {
-			continue
-		}
-		gap := x[i+1].Start - x[i].End
-		if gap > max {
-			found = true
-			max = gap
-			a, b = x[i].End, x[i+1].Start
-		}
+		f, g := x[i].End, x[i+1].Start
+
+		gap := g - f
 		if gap < 0 {
 			return 0, 0, fmt.Errorf("negative gap between %v and %v", x[i], x[i+1])
+		}
+
+		if gap > max {
+			_, ok1 := s.Breakpoints[f]
+			_, ok2 := s.Breakpoints[g]
+			if (ok1 || ok2) && gap <= quantum {
+				continue
+			}
+
+			found = true
+			max = gap
+			a, b = f, g
 		}
 	}
 
 	if !found {
 		return 0, 0, ErrDone
 	}
+
 	return a, b, nil
 }
 
 func (s *SearchState) IfDifferent(a, b time.Duration) *SearchState {
 	t := s.Copy()
 	new := (a + b) / 2
-	new = new.Round(time.Millisecond)
+	new = new.Round(quantum)
 
 	if new != a && new != b {
 		t.Segments = append(t.Segments, Segment{Start: new, End: new})
