@@ -10,6 +10,7 @@ const (
 	frameRoute   = "/frame"
 	previewRoute = "/preview"
 	splitRoute   = "/split"
+	reLabelRoute = "/relabel"
 
 	port = ":18080"
 )
@@ -22,6 +23,7 @@ func main() {
 	http.HandleFunc(compareRoute, handleCompare)
 	http.HandleFunc("/done", handleDone)
 	http.HandleFunc(splitRoute, handleSplit)
+	http.HandleFunc(reLabelRoute, handleReLabel)
 
 	log.Println("serving on port", port)
 	log.Fatal(http.ListenAndServe(port, nil))

@@ -24,6 +24,8 @@ type SearchState struct {
 type Segment struct {
 	Start time.Duration
 	End   time.Duration
+
+	Label string
 }
 
 var initialState = SearchState{
@@ -244,8 +246,8 @@ func (s *SearchState) Normalize() error {
 
 	if len(s.Segments) < 2 {
 		s.Segments = []Segment{
-			{0, 0},
-			{Start: s.Length, End: s.Length},
+			{0, 0, ""},
+			{Start: s.Length, End: s.Length, Label: ""},
 		}
 	}
 

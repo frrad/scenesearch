@@ -24,6 +24,7 @@ table, th, td {
     <button name="state" value="{{.State.Encode}}">Split!</button>
 </form>
 
+<form action="{{.ReLabelRoute}}">
 <table>
   {{ range $index, $row := .Table}}
   <tr>
@@ -36,15 +37,23 @@ table, th, td {
   {{end}}
 </table>
 
+<input type="hidden" id="state" name="state" value="{{.State.Encode}}">
+
+
+<input type="submit" value="Re-Label">
+</form>
+
+
 </html>
 `
 
 var doneTemplate = template.Must(template.New("").Parse(doneHtml))
 
 type DonePageData struct {
-	State      *SearchState
-	SplitRoute string
-	Table      [][]template.HTML
+	State        *SearchState
+	ReLabelRoute string
+	SplitRoute   string
+	Table        [][]template.HTML
 }
 
 func handleDone(w http.ResponseWriter, r *http.Request) {
@@ -72,9 +81,10 @@ func handleDone(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = doneTemplate.Execute(w, DonePageData{
-		SplitRoute: splitRoute,
-		State:      state,
-		Table:      buildTable(state),
+		ReLabelRoute: reLabelRoute,
+		SplitRoute:   splitRoute,
+		State:        state,
+		Table:        buildTable(state),
 	})
 	if err != nil {
 		fmt.Fprintf(w, "%+v", err)
@@ -83,12 +93,12 @@ func handleDone(w http.ResponseWriter, r *http.Request) {
 }
 
 func buildTable(x *SearchState) [][]template.HTML {
-	ans := [][]template.HTML{{"#", "duration", "", "preview"}}
+	ans := [][]template.HTML{{"#", "info", "", "action", "new label"}}
 
 	for i, seg := range x.Segments {
 		row := []template.HTML{
 			template.HTML(fmt.Sprintf("%d", i)),
-			template.HTML(fmt.Sprintf("%s", seg.Len())),
+			template.HTML(fmt.Sprintf("%s <br> %s", seg.Len(), seg.Label)),
 			frameRange{
 				StartOffset: seg.Start.Milliseconds(),
 				EndOffset:   seg.End.Milliseconds(),
@@ -96,13 +106,15 @@ func buildTable(x *SearchState) [][]template.HTML {
 				Width:       200,
 				File:        x.FileName,
 			}.Table(),
-			previewReq{
-				File:  x.FileName,
-				Start: seg.Start.Milliseconds(),
-				End:   seg.End.Milliseconds(),
-			}.AsLink("Preview"),
-			template.HTML(fmt.Sprintf("<a href=\"%s\">Split</a>", x.Split(i).AsCompareLink())),
-			template.HTML(fmt.Sprintf("<a href=\"%s\">Merge Down</a>", x.MergeDown(i).AsCompareLink())),
+			template.HTML(fmt.Sprintf("%s <br><br> %s <br><br> %s",
+				previewReq{
+					File:  x.FileName,
+					Start: seg.Start.Milliseconds(),
+					End:   seg.End.Milliseconds(),
+				}.AsLink("Preview"),
+				fmt.Sprintf("<a href=\"%s\">Split</a>", x.Split(i).AsCompareLink()),
+				fmt.Sprintf("<a href=\"%s\">Merge Down</a>", x.MergeDown(i).AsCompareLink()))),
+			template.HTML(fmt.Sprintf("<input type=\"text\" id=\"%d\" name=\"%d\" >", i, i)),
 		}
 		ans = append(ans, row)
 	}
