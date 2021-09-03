@@ -22,6 +22,8 @@ table, th, td {
 
 <form action="{{.SplitRoute}}" method="post">
     <button name="state" value="{{.State.Encode}}">Split!</button>
+	<input type="checkbox" id="finalize" name="finalize" value="Finalize">
+    <label for="finalize"> Finalize </label>
 </form>
 
 <form action="{{.ReLabelRoute}}">
