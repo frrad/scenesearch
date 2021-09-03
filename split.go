@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 )
 
 func handleSplit(w http.ResponseWriter, r *http.Request) {
@@ -12,6 +15,8 @@ func handleSplit(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	states := r.Form["state"]
 	log.Println(r.Form)
+
+	_, finalize := r.Form["finalize"]
 
 	if len(states) != 1 {
 		log.Fatal("asdf")
@@ -31,13 +36,51 @@ func handleSplit(w http.ResponseWriter, r *http.Request) {
 
 	for i, x := range s.Segments {
 		log.Println(i, x.Start, x.End)
-		_, err := v.Split(x.Start, x.End)
+		cachedLoc, err := v.Split(x.Start, x.End)
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		if finalize {
+			err := copyFile(cachedLoc, finalizeName(i, v.HashString, x))
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
 	}
 
 	log.Println(s)
 
 	fmt.Fprintf(w, "Splitting...")
+}
+
+func finalizeName(i int, hash string, x Segment) string {
+	label := x.Label
+	if label == "" {
+		label = "no label"
+	}
+	label = strings.Replace(label, " ", "-", -1)
+
+	return fmt.Sprintf("%02d_%s_%s.mp4", i, hash[:7], label)
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+	return nil
 }
