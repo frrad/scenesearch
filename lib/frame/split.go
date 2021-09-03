@@ -16,7 +16,7 @@ import (
 const cacheName = "cache"
 
 func (v *Video) splitDoneFileName(start, end time.Duration) string {
-	return fmt.Sprintf("%s/%s-%d-%d.mp4", cacheName, v.Filename, start, end)
+	return fmt.Sprintf("%s/%s-%d-%d.mp4", cacheName, v.HashString[:7], start, end)
 }
 
 func randomHex(n int) (string, error) {
@@ -183,6 +183,12 @@ func (v *Video) Split(startOffset, endOffset time.Duration) (string, error) {
 	}
 
 	log.Println(ffmpegOutput)
+
+	cmd = exec.Command("rm", concatFileName)
+	_, err = cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
 
 	return completeSplitName, nil
 }

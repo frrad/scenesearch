@@ -7,8 +7,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-
-	"github.com/frrad/scenesearch/lib/frame"
 )
 
 type frameReq struct {
@@ -95,8 +93,9 @@ func handleFrame(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
-	v := frame.Video{
-		Filename: files[0],
+	v, err := VideoFrameCache.GetFrame(files[0])
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	framePath, err := v.Frame(time.Duration(offsetUint) * time.Millisecond)
