@@ -10,7 +10,7 @@ import (
 )
 
 func (v *Video) frameDoneFileName(offset time.Duration) string {
-	return fmt.Sprintf("./%s/%s-%d.jpeg", cacheName, v.Filename, offset)
+	return fmt.Sprintf("./%s/%s-%d.jpeg", cacheName, v.HashString[:7], offset)
 }
 
 func (v *Video) Frame(offset time.Duration) (string, error) {

@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	startRoute   = "/start"
 	compareRoute = "/compare"
 	frameRoute   = "/frame"
 	previewRoute = "/preview"
@@ -24,6 +25,7 @@ func main() {
 	http.HandleFunc("/done", handleDone)
 	http.HandleFunc(splitRoute, handleSplit)
 	http.HandleFunc(reLabelRoute, handleReLabel)
+	http.HandleFunc(startRoute, handleStart)
 
 	log.Println("serving on port", port)
 	log.Fatal(http.ListenAndServe(port, nil))
