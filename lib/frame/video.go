@@ -1,7 +1,12 @@
 package frame
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io"
+	"log"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -9,10 +14,11 @@ import (
 )
 
 type Video struct {
-	Filename  string
-	Duration  time.Duration
-	Profile   string
-	KeyFrames []time.Duration
+	Filename   string
+	Duration   time.Duration
+	Profile    string
+	KeyFrames  []time.Duration
+	HashString string
 }
 
 func NewVideo(filename string) (Video, error) {
@@ -36,7 +42,27 @@ func NewVideo(filename string) (Video, error) {
 		return Video{}, err
 	}
 
+	v.HashString = calculateHash(filename)
+	log.Println(v)
+
 	return v, nil
+}
+
+func calculateHash(path string) string {
+	f, err := os.Open(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		log.Fatal(err)
+	}
+
+	sumBytes := h.Sum(nil)
+	hashHex := hex.EncodeToString(sumBytes)
+	return hashHex
 }
 
 func (v *Video) populateDuration() error {
