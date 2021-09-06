@@ -42,7 +42,15 @@ func handleSplit(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if finalize {
-			err := copyFile(cachedLoc, finalizeName(i, v.HashString, x))
+
+			if _, err := os.Stat(finalizeFolderName(v.HashString)); os.IsNotExist(err) {
+				err := os.Mkdir(v.HashString[:7], 0744)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+
+			err = copyFile(cachedLoc, finalizeName(i, v.HashString, x))
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -62,7 +70,11 @@ func finalizeName(i int, hash string, x Segment) string {
 	}
 	label = strings.Replace(label, " ", "-", -1)
 
-	return fmt.Sprintf("%02d_%s_%s.mp4", i, hash[:7], label)
+	return fmt.Sprintf("%s/%02d_%s_%s.mp4", hash[:7], i, hash[:7], label)
+}
+
+func finalizeFolderName(hash string) string {
+	return hash[:7]
 }
 
 func copyFile(src, dst string) error {
