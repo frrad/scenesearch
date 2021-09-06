@@ -43,9 +43,7 @@ func handleStart(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("not one state")
 	}
 
-	state := &SearchState{
-		FileName: ans[0],
-	}
+	state := &SearchState{FileName: ans[0]}
 
 	err = state.Normalize()
 	if err != nil {
