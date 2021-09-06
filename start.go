@@ -43,9 +43,7 @@ func handleStart(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("not one state")
 	}
 
-	state := &SearchState{
-		FileName: ans[0],
-	}
+	state := &SearchState{FileName: ans[0]}
 
 	err = state.Normalize()
 	if err != nil {
@@ -54,5 +52,5 @@ func handleStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/done?state="+state.Encode(), http.StatusSeeOther)
+	http.Redirect(w, r, state.AsCompareLink(), http.StatusSeeOther)
 }
