@@ -54,5 +54,5 @@ func handleStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/done?state="+state.Encode(), http.StatusSeeOther)
+	http.Redirect(w, r, state.AsCompareLink(), http.StatusSeeOther)
 }
