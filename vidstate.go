@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
@@ -37,7 +38,7 @@ func (v *VideoFrames) GetFrame(name string) (*frame.Video, error) {
 
 	newVideo, err := frame.NewVideo(name)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error initializing new video: %w", err)
 	}
 
 	v.State[name] = &newVideo
