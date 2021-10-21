@@ -74,7 +74,7 @@ func (v *Video) populateDuration() error {
 
 	ret, err := exec.Command(n, cmd...).Output()
 	if err != nil {
-		return fmt.Errorf("error executing %s: %w", n, err)
+		return fmt.Errorf("error executing %s %s: %w", n, cmd, err)
 	}
 
 	returnedString := strings.TrimSuffix(string(ret), "\n")
@@ -96,7 +96,7 @@ func (v *Video) populateProfile() error {
 
 	ret, err := exec.Command(n, cmd...).Output()
 	if err != nil {
-		return fmt.Errorf("error executing %s: %w", n, err)
+		return fmt.Errorf("error executing %s %s: %w", n, cmd, err)
 	}
 
 	returnedString := strings.TrimSuffix(string(ret), "\n")
@@ -112,7 +112,7 @@ func (v Video) keyFrames() ([]time.Duration, error) {
 
 	ret, err := exec.Command(n, cmd...).Output()
 	if err != nil {
-		return []time.Duration{}, fmt.Errorf("error executing %s: %w", n, err)
+		return []time.Duration{}, fmt.Errorf("error executing %s %s: %w", n, cmd, err)
 	}
 
 	s := strings.Split(string(ret), "\n")
